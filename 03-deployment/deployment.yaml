@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sc-nginx
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 10%
+      maxUnavailable: 10%
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sc--nginx
+  template:
+    metadata:
+      labels:
+        app: sc--nginx
+    spec:
+      containers:
+        - name: sc--nginx
+          image: library/nginx:1.19
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              protocol: TCP
+              name: http
+      restartPolicy: Always
