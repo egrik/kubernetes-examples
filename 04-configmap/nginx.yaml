@@ -1,0 +1,79 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sc-nginx-conf
+data:
+  default.conf: |
+    server {
+        listen       80 default_server;
+        server_name  _;
+
+        default_type text/plain;
+
+        location / {
+            return 200 '$hostname\n';
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sc-nginx-env
+data:
+  xdebug: 'yes'
+  env: 'local'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sc-nginx
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 10%
+      maxUnavailable: 10%
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sc--nginx
+  template:
+    metadata:
+      labels:
+        app: sc--nginx
+    spec:
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: sc-nginx-conf
+        - name: data
+          hostPath:
+            path: /home/egrik/study/kubernetes/demo/04-configmap/data
+      containers:
+        - name: sc--nginx
+          image: library/nginx:1.19
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /var/www/data
+              name: data
+            - name: nginx-conf
+              mountPath: "/etc/nginx/conf.d"
+          env:
+            - name: TYPE
+              value: app
+            - name: XDEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: sc-nginx-env
+                  key: xdebug
+            - name: ENV_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: sc-nginx-env
+                  key: env
+          ports:
+            - containerPort: 80
+              protocol: TCP
+              name: http
+      restartPolicy: Always
